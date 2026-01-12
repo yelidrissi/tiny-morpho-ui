@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { isAddress, type Address } from 'viem'
 import { supportedChains } from './config/chains'
 import { useVault } from './hooks/useVault'
+import { useVaultHistory, type SavedVault } from './hooks/useVaultHistory'
 import { VaultInput } from './components/VaultInput'
 import { VaultInfo } from './components/VaultInfo'
 import { DepositForm } from './components/DepositForm'
@@ -12,12 +13,26 @@ import { WithdrawForm } from './components/WithdrawForm'
 function App() {
   const { isConnected } = useAccount()
   const { switchChain } = useSwitchChain()
+  const { vaults: savedVaults, addVault, removeVault } = useVaultHistory()
   const [vaultAddress, setVaultAddress] = useState('')
   const [chainId, setChainId] = useState<number>(supportedChains[0].id)
 
   const validVaultAddress = isAddress(vaultAddress) ? vaultAddress as Address : undefined
 
   const vault = useVault(validVaultAddress, chainId)
+
+  // Save vault to history when it loads successfully
+  useEffect(() => {
+    if (validVaultAddress && vault.vaultName && vault.vaultSymbol && vault.assetSymbol) {
+      addVault({
+        address: validVaultAddress,
+        chainId,
+        name: vault.vaultName,
+        symbol: vault.vaultSymbol,
+        assetSymbol: vault.assetSymbol,
+      })
+    }
+  }, [validVaultAddress, chainId, vault.vaultName, vault.vaultSymbol, vault.assetSymbol, addVault])
 
   const handleRefresh = () => {
     vault.refetch()
@@ -28,6 +43,15 @@ function App() {
     if (isConnected) {
       switchChain({ chainId: newChainId })
     }
+  }
+
+  const handleSelectVault = (saved: SavedVault) => {
+    setVaultAddress(saved.address)
+    handleChainChange(saved.chainId)
+  }
+
+  const handleRemoveVault = (address: string, vaultChainId: number) => {
+    removeVault(address, vaultChainId)
   }
 
   return (
@@ -45,6 +69,9 @@ function App() {
           setVaultAddress={setVaultAddress}
           chainId={chainId}
           setChainId={handleChainChange}
+          savedVaults={savedVaults}
+          onSelectVault={handleSelectVault}
+          onRemoveVault={handleRemoveVault}
         />
 
         {validVaultAddress && (

@@ -102,19 +102,19 @@ export function WithdrawForm({
             ~{displaySharesValue} {assetSymbol}
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-stretch">
           <input
             type="text"
             value={amount}
             onChange={(e) => handleAmountChange(e.target.value)}
             placeholder="0.0"
-            className={`flex-1 px-4 py-3 bg-gray-900 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono ${
+            className={`flex-1 min-w-0 px-4 h-12 bg-gray-900 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono ${
               hasInsufficientShares && !withdrawAll ? 'border-red-500' : 'border-gray-700'
             }`}
           />
           <button
             onClick={handleMax}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 h-12 rounded-lg text-sm font-medium transition-colors shrink-0 ${
               withdrawAll
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-700 hover:bg-gray-600 text-white'
