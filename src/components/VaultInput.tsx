@@ -1,5 +1,8 @@
+import { useMemo } from 'react'
+import { formatUnits } from 'viem'
 import { supportedChains } from '../config/chains'
 import type { SavedVault } from '../hooks/useVaultHistory'
+import { useVaultDeposits, vaultKey, type VaultDeposit } from '../hooks/useVaultDeposits'
 
 interface VaultInputProps {
   vaultAddress: string
@@ -21,10 +24,26 @@ export function VaultInput({
   onRemoveVault,
 }: VaultInputProps) {
   const isValidAddress = /^0x[a-fA-F0-9]{40}$/.test(vaultAddress)
+  const deposits = useVaultDeposits(savedVaults)
+
+  // Highest deposit first; stable sort keeps the existing order for equal deposits
+  const sortedVaults = useMemo(() => {
+    const depositValue = (v: SavedVault) => {
+      const deposit = deposits.get(vaultKey(v.address, v.chainId))
+      return deposit ? parseFloat(formatUnits(deposit.assets, deposit.assetDecimals)) : 0
+    }
+    return [...savedVaults].sort((a, b) => depositValue(b) - depositValue(a))
+  }, [savedVaults, deposits])
 
   const getChainName = (id: number) => {
     const chain = supportedChains.find((c) => c.id === id)
     return chain?.name ?? `Chain ${id}`
+  }
+
+  const formatDeposit = (deposit: VaultDeposit) => {
+    const num = parseFloat(formatUnits(deposit.assets, deposit.assetDecimals))
+    if (num < 0.0001) return '<0.0001'
+    return num.toLocaleString(undefined, { maximumFractionDigits: 4 })
   }
 
   return (
@@ -72,7 +91,9 @@ export function VaultInput({
             Saved Vaults
           </label>
           <div className="space-y-2">
-            {savedVaults.map((vault) => (
+            {sortedVaults.map((vault) => {
+              const deposit = deposits.get(vaultKey(vault.address, vault.chainId))
+              return (
               <div
                 key={`${vault.chainId}-${vault.address}`}
                 className={`flex items-center gap-2 p-3 bg-gray-800 border rounded-lg cursor-pointer hover:bg-gray-750 transition-colors ${
@@ -92,6 +113,11 @@ export function VaultInput({
                     <span className="font-mono truncate">{vault.address.slice(0, 10)}...{vault.address.slice(-8)}</span>
                   </div>
                 </div>
+                {deposit && (
+                  <span className="text-green-400 font-mono text-sm whitespace-nowrap" title="Your deposit">
+                    {formatDeposit(deposit)} {vault.assetSymbol}
+                  </span>
+                )}
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
@@ -105,7 +131,8 @@ export function VaultInput({
                   </svg>
                 </button>
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
